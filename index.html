@@ -652,12 +652,41 @@ document.getElementById('manual-code').addEventListener('keydown', e => {
 // ══════════════════════════════════════════════
 // SCAN LOGIC
 // ══════════════════════════════════════════════
-function processScan(code) {
+function processScan(raw) {
+    // Parse QR content: could be JSON {"ID":"OPH2026-001",...} or plain code "OPH2026-001"
+    let code = raw;
+    try {
+        const json = JSON.parse(raw);
+        if (json.ID) code = json.ID.toUpperCase();
+    } catch(e) {
+        code = raw.trim().toUpperCase();
+    }
+
     const person = DB[code];
     if (!person) { showResult('unknown', code, null); return; }
 
-    const cp = CHECKPOINTS[currentBorne];
-    const hasAccess = cp.val !== undefined ? person.a[cp.idx] === cp.val : person.a[cp.idx] === 1;
+    // Map QR access codes to checkpoint keys
+    const QR_ACCESS_MAP = {
+        j1_pleniere: 'J1_MAT', j1_cocktail: 'J1_COC', j1_apresmidi: 'J1_APM',
+        j1_velodrome: 'J1_VEL', j1_petittrain: 'J1_PTR',
+        j1_gala: 'J1_GAL', j2_pleniere: 'J2_MAT', j2_cocktail: 'J2_COC', goodie: 'GOODIE'
+    };
+
+    // Check access: use QR data if available, otherwise fall back to DB
+    let hasAccess;
+    try {
+        const json = JSON.parse(raw);
+        if (json.A && Array.isArray(json.A)) {
+            const needed = QR_ACCESS_MAP[currentBorne];
+            hasAccess = json.A.includes(needed);
+        } else {
+            const cp = CHECKPOINTS[currentBorne];
+            hasAccess = cp.val !== undefined ? person.a[cp.idx] === cp.val : person.a[cp.idx] === 1;
+        }
+    } catch(e) {
+        const cp = CHECKPOINTS[currentBorne];
+        hasAccess = cp.val !== undefined ? person.a[cp.idx] === cp.val : person.a[cp.idx] === 1;
+    }
 
     if (!hasAccess) { showResult('denied', code, person); addLog(code, person, 'denied'); return; }
 
