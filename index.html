@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>58e Congres OPH - Controle d'acces</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --teal:#4ABFAC;--teal-dark:#3AA89A;--orange:#F39C42;--coral:#E8524F;
+            --green:#27AE60;--red:#E74C3C;--amber:#F39C12;
+            --bg:#F0F2F5;--card:#FFF;--text:#2D3436;--text-dim:#636E72;--border:#DFE6E9;
+        }
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
+        .top-bar{background:linear-gradient(135deg,var(--teal),var(--teal-dark));color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+        .top-bar h1{font-size:1em;font-weight:600}
+        .top-bar .borne-tag{background:rgba(255,255,255,.2);padding:4px 10px;border-radius:20px;font-size:.75em}
+        .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--coral);display:flex;z-index:100}
+        .bottom-bar button{flex:1;padding:14px 8px;border:none;background:transparent;color:#fff;font-size:.7em;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.7;transition:.2s}
+        .bottom-bar button.active{opacity:1;background:rgba(0,0,0,.15)}
+        .bottom-bar button svg{width:22px;height:22px;fill:currentColor}
+        .view{display:none;padding:16px;padding-bottom:80px}
+        .view.active{display:block}
+        .card{background:var(--card);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+        .card h2{font-size:.8em;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);margin-bottom:12px}
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border:none;border-radius:12px;font-size:1em;font-weight:600;cursor:pointer;transition:.2s;width:100%}
+        .btn-teal{background:var(--teal);color:#fff}
+        .btn-teal:hover{background:var(--teal-dark)}
+        .btn-outline{background:transparent;border:2px solid var(--border);color:var(--text)}
+        .btn-sm{padding:8px 14px;font-size:.85em;width:auto;border-radius:8px}
+        select,input{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:1em;font-family:inherit;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none}
+        select:focus,input:focus{outline:none;border-color:var(--teal)}
+        label{display:block;font-size:.85em;font-weight:600;margin-bottom:6px;color:var(--text-dim)}
+        .form-group{margin-bottom:16px}
+        #camera-box{width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:200px}
+        #camera-box video{border-radius:12px}
+        .scan-btn-big{width:100%;padding:20px;font-size:1.2em;margin-top:12px;border-radius:14px;border:none;font-weight:700;cursor:pointer;transition:.2s}
+        /* Result overlay */
+        .result-overlay{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;animation:fadeIn .2s}
+        .result-overlay.ok{background:var(--green)}
+        .result-overlay.denied{background:var(--red)}
+        .result-overlay.already{background:var(--amber)}
+        .result-overlay.unknown{background:#636E72}
+        .result-overlay *{color:#fff}
+        .result-overlay .result-icon{font-size:4em;margin-bottom:16px}
+        .result-overlay .result-title{font-size:1.6em;font-weight:800;margin-bottom:8px}
+        .result-overlay .result-name{font-size:1.3em;font-weight:600;margin-bottom:4px}
+        .result-overlay .result-org{font-size:.95em;opacity:.85;margin-bottom:16px}
+        .result-overlay .result-detail{font-size:.85em;opacity:.8;margin-bottom:6px}
+        .result-overlay .result-diet{background:rgba(255,255,255,.25);display:inline-block;padding:6px 14px;border-radius:20px;font-size:.85em;font-weight:600;margin-top:8px}
+        .result-overlay .result-close{margin-top:24px;padding:14px 40px;border:2px solid rgba(255,255,255,.5);border-radius:12px;background:rgba(255,255,255,.15);color:#fff;font-size:1em;font-weight:600;cursor:pointer}
+        .result-overlay .result-already-info{background:rgba(0,0,0,.15);padding:12px 16px;border-radius:10px;margin-top:12px;font-size:.85em;text-align:left}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        /* Log items */
+        .log-item{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border)}
+        .log-item:last-child{border-bottom:none}
+        .log-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+        .log-dot.ok{background:var(--green)}
+        .log-dot.denied{background:var(--red)}
+        .log-dot.already{background:var(--amber)}
+        .log-dot.unknown{background:#636E72}
+        .log-info{flex:1;min-width:0}
+        .log-name{font-weight:600;font-size:.9em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .log-meta{font-size:.75em;color:var(--text-dim)}
+        .log-time{font-size:.75em;color:var(--text-dim);white-space:nowrap}
+        /* Stats */
+        .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .stat-box{background:var(--bg);border-radius:10px;padding:16px;text-align:center}
+        .stat-num{font-size:2em;font-weight:800}
+        .stat-label{font-size:.75em;color:var(--text-dim);margin-top:4px}
+        .stat-box.green .stat-num{color:var(--green)}
+        .stat-box.red .stat-num{color:var(--red)}
+        .stat-box.amber .stat-num{color:var(--amber)}
+        .stat-box.teal .stat-num{color:var(--teal)}
+        /* Search */
+        .search-result{padding:12px;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s}
+        .search-result:hover{background:var(--bg)}
+        .search-result .sr-name{font-weight:600}
+        .search-result .sr-org{font-size:.8em;color:var(--text-dim)}
+        .search-result .sr-code{font-size:.75em;color:var(--teal);font-family:monospace}
+        .access-list{list-style:none;margin-top:8px}
+        .access-list li{padding:4px 0;font-size:.85em;display:flex;align-items:center;gap:6px}
+        .access-list li .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .access-list li .dot.yes{background:var(--orange)}
+        .access-list li .dot.no{background:#ccc}
+        /* Firebase status */
+        .fb-status{display:flex;align-items:center;gap:6px;font-size:.7em}
+        .fb-dot{width:8px;height:8px;border-radius:50%}
+        .fb-dot.online{background:#2ed573}
+        .fb-dot.offline{background:var(--red)}
+        .fb-dot.pending{background:var(--amber)}
+        /* Setup */
+        .setup-header{text-align:center;padding:40px 20px 20px}
+        .setup-header h1{font-size:1.4em;color:var(--teal);margin-bottom:4px}
+        .setup-header p{color:var(--text-dim);font-size:.85em}
+        .setup-step{padding:4px 10px;background:var(--teal);color:#fff;border-radius:20px;font-size:.75em;font-weight:600;display:inline-block;margin-bottom:8px}
+        .instructions{background:#FFF3E0;border-radius:10px;padding:14px;font-size:.82em;color:#E65100;line-height:1.5;margin-bottom:16px}
+        .instructions code{background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;font-size:.9em}
+        .config-ok{text-align:center;padding:16px;color:var(--green);font-weight:600}
+        .empty{text-align:center;padding:40px 20px;color:var(--text-dim);font-size:.9em}
+        @media(min-width:600px){.view{max-width:500px;margin:0 auto}}
+    </style>
+</head>
+<body>
+
+<!-- ==================== LOGIN VIEW ==================== -->
+<div id="view-login" class="view active" style="padding-top:0">
+    <div class="setup-header" style="padding-top:80px">
+        <h1>58e Congres OPH</h1>
+        <p>Marseille — 16-17 Avril 2026</p>
+        <p style="margin-top:4px;font-size:.8em;color:var(--teal)">Application de controle d'acces</p>
+    </div>
+    <div class="card" style="max-width:360px;margin:20px auto">
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <div style="position:relative">
+                <input id="login-pw" type="password" placeholder="Entrez le mot de passe" autocomplete="off" style="padding-right:50px">
+                <button type="button" id="toggle-pw" onclick="togglePwVisibility()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-dim);cursor:pointer;padding:4px 8px;line-height:0"><svg id="eye-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><svg id="eye-off-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
+            </div>
+        </div>
+        <button class="btn btn-teal" onclick="doLogin()">Acceder</button>
+        <div id="login-error" style="margin-top:10px;font-size:.85em;color:var(--red);text-align:center"></div>
+    </div>
+</div>
+
+<!-- ==================== SETUP VIEW ==================== -->
+<div id="view-setup" class="view" style="padding-top:0">
+    <div class="setup-header">
+        <h1>58e Congres OPH</h1>
+        <p>Marseille — 16-17 Avril 2026</p>
+        <p style="margin-top:4px;font-size:.8em;color:var(--teal)">Application de controle d'acces</p>
+    </div>
+
+    <div class="card">
+        <span class="setup-step">Etape 1</span>
+        <h2>Synchronisation cloud</h2>
+
+        <div id="fb-wizard">
+            <!-- Step 1: Choice -->
+            <div id="wiz-choice">
+                <p style="font-size:.9em;margin-bottom:14px;line-height:1.5">Pour que toutes les bornes partagent les scans en temps reel, connectez une base Firebase (gratuit). Sinon, chaque appareil fonctionne en autonome.</p>
+                <button class="btn btn-teal" onclick="showWizStep('url')" style="margin-bottom:8px">Connecter Firebase</button>
+                <button class="btn btn-outline" onclick="skipFirebase()">Continuer sans sync (hors-ligne)</button>
+            </div>
+
+            <!-- Step 2: URL input -->
+            <div id="wiz-url" style="display:none">
+                <div style="background:#E8F5E9;border-radius:10px;padding:14px;font-size:.82em;color:#2E7D32;line-height:1.6;margin-bottom:14px">
+                    <strong>Comment obtenir l'URL (2 minutes) :</strong><br><br>
+                    <strong>1.</strong> Connectez-vous sur <strong>console.firebase.google.com</strong><br>
+                    <strong>2.</strong> Cliquez <strong>"Creer un projet"</strong> → nommez-le (ex: "congres-oph") → Continuer<br>
+                    <strong>3.</strong> Dans le menu a gauche : <strong>Creer > Realtime Database</strong><br>
+                    <strong>4.</strong> Cliquez <strong>"Creer une base de donnees"</strong> → choisissez <strong>"mode test"</strong><br>
+                    <strong>5.</strong> Copiez l'URL qui apparait en haut (elle ressemble a <code style="background:rgba(0,0,0,.08);padding:1px 4px;border-radius:3px">https://congres-oph-default-rtdb.europe-west1.firebasedatabase.app</code>)
+                </div>
+                <div class="form-group">
+                    <label>URL de votre base Firebase</label>
+                    <input id="fb-url-input" placeholder="https://votre-projet.firebaseio.com" autocomplete="off" style="font-family:monospace;font-size:.85em">
+                </div>
+                <button class="btn btn-teal" onclick="connectFirebase()" style="margin-bottom:8px">Connecter</button>
+                <button class="btn btn-outline btn-sm" onclick="showWizStep('choice')" style="width:auto">Retour</button>
+                <div id="fb-test-result" style="margin-top:10px;font-size:.85em"></div>
+            </div>
+
+            <!-- Connected state -->
+            <div id="wiz-connected" style="display:none">
+                <div style="background:#E8F5E9;border-radius:10px;padding:16px;text-align:center">
+                    <div style="font-size:1.5em;margin-bottom:6px">&#10003;</div>
+                    <div style="font-weight:600;color:#2E7D32">Firebase connecte !</div>
+                    <div style="font-size:.8em;color:#4CAF50;margin-top:4px" id="fb-connected-url"></div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="resetFirebase()" style="margin-top:10px;width:auto">Changer de base</button>
+            </div>
+
+            <!-- Offline state -->
+            <div id="wiz-offline" style="display:none">
+                <div style="background:#FFF3E0;border-radius:10px;padding:16px;text-align:center">
+                    <div style="font-size:1.5em;margin-bottom:6px">&#128246;</div>
+                    <div style="font-weight:600;color:#E65100">Mode hors-ligne</div>
+                    <div style="font-size:.8em;color:#F57C00;margin-top:4px">Les scans ne seront pas partages entre appareils</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="showWizStep('choice')" style="margin-top:10px;width:auto">Activer Firebase</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <span class="setup-step">Etape 2</span>
+        <h2>Votre borne</h2>
+        <div class="form-group">
+            <label>Point de controle</label>
+            <select id="select-borne">
+                <option value="">— Choisir votre borne —</option>
+                <option value="j1_pleniere">Jour 1 — Pleniere (Jeu. 16)</option>
+                <option value="j1_cocktail">Jour 1 — Cocktail Dejeunatoire</option>
+                <option value="j1_apresmidi">Jour 1 — Apres-midi Congres</option>
+                <option value="j1_velodrome">Jour 1 — Visite stade Velodrome</option>
+                <option value="j1_petittrain">Jour 1 — Circuit petit train</option>
+                <option value="j1_gala">Jour 1 — Soiree de Gala</option>
+                <option value="j2_pleniere">Jour 2 — Pleniere (Ven. 17)</option>
+                <option value="j2_cocktail">Jour 2 — Cocktail Dejeunatoire</option>
+                <option value="goodie">Goodie Bag</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Votre prenom (operateur)</label>
+            <input id="input-operator" placeholder="Ex: Marie" autocomplete="off">
+        </div>
+    </div>
+
+    <button class="btn btn-teal" onclick="startApp()" style="margin-top:8px">Lancer le controle</button>
+</div>
+
+<!-- ==================== TOP BAR ==================== -->
+<div id="app-bar" class="top-bar" style="display:none">
+    <div>
+        <h1 id="bar-title">Controle d'acces</h1>
+        <div class="fb-status"><div id="fb-dot" class="fb-dot offline"></div><span id="fb-label">Hors-ligne</span></div>
+    </div>
+    <div id="bar-borne" class="borne-tag" onclick="goBackToSetup()" style="cursor:pointer">Changer</div>
+</div>
+
+<!-- ==================== SCANNER VIEW ==================== -->
+<div id="view-scan" class="view">
+    <div class="card" style="padding:12px">
+        <div id="camera-box"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+        <button class="scan-btn-big" id="btn-cam" onclick="toggleCamera()" style="background:var(--teal);color:#fff;flex:1">Demarrer la camera</button>
+    </div>
+    <div class="card" style="margin-top:14px">
+        <h2>Saisie manuelle</h2>
+        <div style="display:flex;gap:8px">
+            <input id="manual-code" placeholder="OPH2026-001" style="flex:1;font-family:monospace" autocomplete="off">
+            <button class="btn btn-teal btn-sm" onclick="manualScan()">OK</button>
+        </div>
+    </div>
+    <div class="card" id="recent-scans-card">
+        <h2>Derniers scans</h2>
+        <div id="recent-scans"><div class="empty">Aucun scan</div></div>
+    </div>
+</div>
+
+<!-- ==================== LOG VIEW ==================== -->
+<div id="view-log" class="view">
+    <div class="card">
+        <h2>Historique complet — <span id="log-borne-name"></span></h2>
+        <div id="full-log"><div class="empty">Aucun scan enregistre</div></div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="exportCSV()" style="margin-top:8px">Exporter en CSV</button>
+</div>
+
+<!-- ==================== STATS VIEW ==================== -->
+<div id="view-stats" class="view">
+    <div class="card">
+        <h2>Statistiques — <span id="stats-borne-name"></span></h2>
+        <div class="stat-grid">
+            <div class="stat-box green"><div class="stat-num" id="stat-ok">0</div><div class="stat-label">Acces accordes</div></div>
+            <div class="stat-box red"><div class="stat-num" id="stat-denied">0</div><div class="stat-label">Acces refuses</div></div>
+            <div class="stat-box amber"><div class="stat-num" id="stat-already">0</div><div class="stat-label">Deja scannes</div></div>
+            <div class="stat-box teal"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total participants</div></div>
+        </div>
+    </div>
+    <div class="card">
+        <h2>Participants non encore scannes</h2>
+        <div id="not-scanned-list"><div class="empty">Chargement...</div></div>
+    </div>
+</div>
+
+<!-- ==================== SEARCH VIEW ==================== -->
+<div id="view-search" class="view">
+    <div class="card">
+        <h2>Rechercher un participant</h2>
+        <input id="search-input" placeholder="Nom, prenom ou code..." oninput="doSearch()" autocomplete="off">
+    </div>
+    <div class="card" id="search-results-card" style="display:none">
+        <div id="search-results"></div>
+    </div>
+    <div id="search-detail" style="display:none"></div>
+</div>
+
+<!-- ==================== BOTTOM BAR ==================== -->
+<div id="app-bottom" class="bottom-bar" style="display:none">
+    <button class="active" data-view="scan" onclick="switchView('scan')">
+        <svg viewBox="0 0 24 24"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z"/></svg>
+        Scanner
+    </button>
+    <button data-view="log" onclick="switchView('log')">
+        <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        Journal
+    </button>
+    <button data-view="stats" onclick="switchView('stats')">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        Stats
+    </button>
+    <button data-view="search" onclick="switchView('search')">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        Chercher
+    </button>
+</div>
+
+<!-- ==================== RESULT OVERLAY ==================== -->
+<div id="result-overlay" class="result-overlay" style="display:none" onclick="closeResult()"></div>
+
+<script>
+(function(){
+'use strict';
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+const APP_PASSWORD = 'OPH2026bycarocom';
+
+window.togglePwVisibility = function() {
+    const input = document.getElementById('login-pw');
+    const btn = document.getElementById('toggle-pw');
+    if (input.type === 'password') { input.type = 'text'; document.getElementById('eye-icon').style.display='none'; document.getElementById('eye-off-icon').style.display=''; }
+    else { input.type = 'password'; document.getElementById('eye-icon').style.display=''; document.getElementById('eye-off-icon').style.display='none'; }
+};
+
+function unlockApp() {
+    document.getElementById('view-login').classList.remove('active');
+    document.getElementById('view-login').style.display = 'none';
+    document.getElementById('view-setup').style.display = '';
+    document.getElementById('view-setup').classList.add('active');
+}
+
+window.doLogin = function() {
+    const pw = document.getElementById('login-pw').value;
+    if (pw === APP_PASSWORD) {
+        sessionStorage.setItem('oph_auth', '1');
+        unlockApp();
+    } else {
+        document.getElementById('login-error').textContent = 'Mot de passe incorrect';
+        document.getElementById('login-pw').value = '';
+    }
+};
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('login-pw').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doLogin();
+    });
+    if (sessionStorage.getItem('oph_auth') === '1') {
+        unlockApp();
+    }
+});
+
+// ══════════════════════════════════════════════
+// BACK TO SETUP (change borne)
+// ══════════════════════════════════════════════
+window.goBackToSetup = function() {
+    // Stop camera if running
+    if (cameraOn && scanner) { try { scanner.stop(); } catch(e) {} cameraOn = false; }
+    document.getElementById('camera-box').innerHTML = '';
+    document.getElementById('btn-cam').textContent = 'Demarrer la camera';
+    document.getElementById('btn-cam').style.background = 'var(--teal)';
+    // Hide app, show setup
+    document.getElementById('app-bar').style.display = 'none';
+    document.getElementById('app-bottom').style.display = 'none';
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-setup').style.display = '';
+    document.getElementById('view-setup').classList.add('active');
+};
+
+// ══════════════════════════════════════════════
+// PARTICIPANT DATABASE
+// a = [j1_plen, j1_cock, j1_aprem, j1_activ, j1_gala, j2_plen, j2_cock, goodie]
+// j1_activ: 0=aucune, 1=velodrome, 2=petit_train
+// ══════════════════════════════════════════════
+const DB={
+"OPH2026-001":{n:"Benjamin ANDRE",o:"OISE HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-002":{n:"Audrey ARQUET",o:"TARN ET GARONNE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-003":{n:"Philippe ASPAR",o:"TARN HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-004":{n:"Martial AUBRY",o:"VAR HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-005":{n:"Pierre-Marie BECKAERT",o:"DOMITIA HABITAT OPH",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-006":{n:"Cecile BELARD DU PLANTYS",o:"PARIS HABITAT OPH",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-007":{n:"Georges BELLOUR",o:"BREST METROPOLE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-008":{n:"Hoberg BERNARD",o:"VALENCE ROMANS HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-009":{n:"Bertrand BOISSERIE",o:"PERIGORD HABITAT",a:[1,1,1,2,1,0,0,1]},
+"OPH2026-010":{n:"Bertrand BOISSERIE",o:"BERTRAND BOISSERIE",a:[1,1,1,2,1,0,0,1]},
+"OPH2026-011":{n:"Stephanie BONNET",o:"EKIDOM",a:[1,1,0,2,1,1,0,1]},
+"OPH2026-012":{n:"Laurent BORDAS",o:"ANGERS LOIRE HABITAT OPH",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-013":{n:"Gregory BOUCHART",o:"",a:[0,0,0,1,1,0,0,1]},
+"OPH2026-014":{n:"Christophe BOUSCAUD",o:"ORNE HABITAT",a:[1,1,1,1,1,1,1,1],d:"Crustaces"},
+"OPH2026-015":{n:"Karine BOUSQUAIL",o:"OPH du Gers",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-016":{n:"Alain BRAUN",o:"acm Habitat",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-017":{n:"Philippe BRUNET-DEBAINES",o:"OPHIS du Puy-de-Dome",a:[1,1,1,1,1,1,1,1],d:"Celeri"},
+"OPH2026-018":{n:"Christophe BUREAU",o:"INOLYA",a:[0,1,1,1,1,1,1,1]},
+"OPH2026-019":{n:"Stephane CARASSOU",o:"HABITAT 44",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-020":{n:"Samuel CARPENTIER",o:"ARDECHE HABITAT",a:[1,1,0,1,1,1,1,1]},
+"OPH2026-021":{n:"Nathalie CASTAING-COURAUD",o:"SEMIS",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-022":{n:"Philippe CATALAN",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-023":{n:"Franck CECCATO",o:"MOSELIS",a:[1,1,1,0,1,1,1,1],d:"Vegetarien"},
+"OPH2026-024":{n:"Elodie CHALOPIN",o:"OPH de l'Ariege",a:[1,1,1,0,1,1,1,1],d:"Vegetarien"},
+"OPH2026-025":{n:"Jacques CHAMBAUD",o:"Hamaris OPH Haute Marne",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-026":{n:"Agnes CHAROUSSET",o:"LOT HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-027":{n:"Mondoloni CHRISTEL",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-028":{n:"Aloisio CHRISTOPHE",o:"OPH 05",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-029":{n:"Pascal CLAUDE",o:"Val d'Oise Habitat",a:[1,1,1,2,0,1,0,1]},
+"OPH2026-030":{n:"Pascal CLAUDE",o:"Val d'Oise Habitat",a:[1,1,1,2,0,1,0,1]},
+"OPH2026-031":{n:"Karen CLIVIO FONTANY",o:"MACON HABITAT",a:[1,1,0,0,1,1,1,1]},
+"OPH2026-032":{n:"Jean-Bernard DAMBIER",o:"PROVENCE METROPOLE LOGEMENT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-033":{n:"Laurent DENIS",o:"VAR HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-034":{n:"Laurent DROULEZ",o:"",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-035":{n:"Gilles DUPONT",o:"HERAULT LOGEMENT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-036":{n:"Kaba FREDERIQUE",o:"EST ENSEMBLE HABITAT",a:[1,1,1,0,1,1,0,1]},
+"OPH2026-037":{n:"Charlette GALLOUET",o:"HABITAT76",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-038":{n:"Eric GIMER",o:"Habitat76",a:[0,1,0,1,1,0,1,1]},
+"OPH2026-039":{n:"Jean Luc GORCE",o:"AQUITANIS",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-040":{n:"Christian HARCOUET",o:"VALOPHIS HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-041":{n:"Vandebeulque JACQUES",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-042":{n:"Denis JANAUD",o:"HABITAT AUDOIS",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-043":{n:"Sebastien JOLIS",o:"EST ENSEMBLE HABITAT",a:[1,1,1,0,1,1,0,1]},
+"OPH2026-044":{n:"David JONNARD",o:"OPAC SAVOIE",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-045":{n:"Cyrille KERVRAN",o:"SAINT-JUNIEN HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-046":{n:"Gregory LAFFAIRE",o:"CANTAL HABITAT",a:[1,1,1,1,0,0,0,1]},
+"OPH2026-047":{n:"Jean-Pierre LAFONT-CASSIAT",o:"OPH 65",a:[0,1,0,0,1,0,1,1]},
+"OPH2026-048":{n:"Thomas LE GALL",o:"GRAND BOURG HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-049":{n:"Gildas LE GRAND",o:"OPH OPAC QUIMPER CORNOUAILLE",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-050":{n:"Nathalie LEGEAY",o:"VENDEE HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-051":{n:"Severine LEPLUS",o:"Val d'Oise Habitat",a:[1,1,1,2,0,1,0,1]},
+"OPH2026-052":{n:"Christophe LIEVIN",o:"COLOMBES HABITAT PUBLIC",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-053":{n:"Lionel MAHUET",o:"meurthe & moselle HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-054":{n:"Jean-Baptiste MALINGRE",o:"OPHEA",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-055":{n:"Julien MATTEI",o:"OPHEA",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-056":{n:"Gregoire MICHEL",o:"ASSOC. DES DG PACA CORSE",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-057":{n:"Celine MOREAU",o:"LIMOGES HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-058":{n:"Pascal NAYME",o:"DEUX FLEUVES LOIRE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-059":{n:"Frank NICOL",o:"VAL TOURAINE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-060":{n:"Jerome ORELU",o:"",a:[1,1,0,2,0,1,1,1]},
+"OPH2026-061":{n:"Mounia OUAFELLA PATIER",o:"OPH TOUL HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-062":{n:"Olivier PASQUET",o:"",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-063":{n:"Marc PATAY",o:"NANTES METROPOLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-064":{n:"Jean-Sebastien PAULUS",o:"TERRITOIRE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-065":{n:"Vincent PERONNAUD",o:"",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-066":{n:"Maryline PERRONNE",o:"",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-067":{n:"Eric PETER",o:"m2A Habitat",a:[1,1,1,2,0,1,1,1]},
+"OPH2026-068":{n:"Marianne PICARD",o:"",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-069":{n:"Linda PRADEL",o:"TARN ET GARONNE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-070":{n:"Benoit RATIER",o:"MELDOMYS",a:[1,1,1,2,0,1,1,1]},
+"OPH2026-071":{n:"Sandrine ROTZLER",o:"HABITAT SUD ATLANTIC",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-072":{n:"Antoine ROUSSEAU",o:"Archipel Habitat",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-073":{n:"Lausseni SANGARE",o:"HABITAT SUD ATLANTIC",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-074":{n:"Laurent SAUSSAYE",o:"",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-075":{n:"Manuel SMADJA",o:"COTE D'AZUR HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-076":{n:"Frederic SUCHET",o:"Creusalis",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-077":{n:"Spiaggia THIERRY",o:"Logis Cevenols",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-078":{n:"Thierry TOURTOULOU",o:"OPH de l'Ariege",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-079":{n:"Jean-Luc TRIOLLET",o:"DYNACITE",a:[0,1,0,0,1,0,1,1]},
+"OPH2026-080":{n:"Damien VANOVERSCHELDE",o:"",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-081":{n:"Vincente VIAL",o:"OPHEOR",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-082":{n:"Marie-Laure VUITTENEZ",o:"Habitat & Metropole",a:[1,1,1,2,1,1,1,1]}
+};
+
+const CHECKPOINTS = {
+    j1_pleniere: {label:"J1 - Pleniere", idx:0},
+    j1_cocktail: {label:"J1 - Cocktail Dejeunatoire", idx:1},
+    j1_apresmidi: {label:"J1 - Apres-midi Congres", idx:2},
+    j1_velodrome: {label:"J1 - Visite Velodrome", idx:3, val:1},
+    j1_petittrain: {label:"J1 - Circuit petit train", idx:3, val:2},
+    j1_gala: {label:"J1 - Soiree de Gala", idx:4},
+    j2_pleniere: {label:"J2 - Pleniere", idx:5},
+    j2_cocktail: {label:"J2 - Cocktail Dejeunatoire", idx:6},
+    goodie: {label:"Goodie Bag", idx:7}
+};
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let currentBorne = '';
+let operatorName = '';
+let scanner = null;
+let cameraOn = false;
+let db = null; // Firebase ref
+let firebaseReady = false;
+let scanLog = []; // local log [{code,name,org,status,time,operator,borne}]
+let allScans = {}; // from Firebase: key = "CODE_BORNE" → {timestamp,operator,...}
+let cooldown = false;
+
+// ══════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════
+function initFirebase(config) {
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        db = firebase.database();
+        db.ref('.info/connected').on('value', snap => {
+            firebaseReady = snap.val() === true;
+            updateFbStatus();
+        });
+        // Listen for all scans in real-time
+        db.ref('scans').on('value', snap => {
+            allScans = snap.val() || {};
+            updateStats();
+        });
+        return true;
+    } catch(e) { console.error(e); return false; }
+}
+
+function updateFbStatus() {
+    const dot = document.getElementById('fb-dot');
+    const label = document.getElementById('fb-label');
+    if (firebaseReady) { dot.className='fb-dot online'; label.textContent='Connecte'; }
+    else if (db) { dot.className='fb-dot pending'; label.textContent='Connexion...'; }
+    else { dot.className='fb-dot offline'; label.textContent='Hors-ligne'; }
+}
+
+// Wizard navigation
+window.showWizStep = function(step) {
+    ['choice','url','connected','offline'].forEach(s => {
+        document.getElementById('wiz-'+s).style.display = s === step ? 'block' : 'none';
+    });
+};
+
+window.skipFirebase = function() {
+    showWizStep('offline');
+};
+
+window.resetFirebase = function() {
+    localStorage.removeItem('oph_fb_url');
+    db = null; firebaseReady = false;
+    if (firebase.apps.length) { firebase.apps.forEach(a => a.delete()); }
+    showWizStep('choice');
+    updateFbStatus();
+};
+
+window.connectFirebase = function() {
+    const url = document.getElementById('fb-url-input').value.trim();
+    const el = document.getElementById('fb-test-result');
+    if (!url) { el.innerHTML='<span style="color:var(--amber)">Collez l\'URL de votre base Firebase.</span>'; return; }
+    if (!url.startsWith('http')) { el.innerHTML='<span style="color:var(--red)">L\'URL doit commencer par https://</span>'; return; }
+
+    el.innerHTML='<span style="color:var(--teal)">Connexion en cours...</span>';
+    const ok = initFirebase({ databaseURL: url });
+    if (ok) {
+        localStorage.setItem('oph_fb_url', url);
+        // Test write to verify access
+        db.ref('_ping').set(Date.now()).then(() => {
+            el.innerHTML='';
+            document.getElementById('fb-connected-url').textContent = url;
+            showWizStep('connected');
+        }).catch(err => {
+            el.innerHTML='<span style="color:var(--red)">Connexion echouee. Verifiez l\'URL et que la base est en mode test.<br><small>'+err.message+'</small></span>';
+        });
+    } else {
+        el.innerHTML='<span style="color:var(--red)">Erreur de connexion.</span>';
+    }
+};
+
+// ══════════════════════════════════════════════
+// APP START
+// ══════════════════════════════════════════════
+window.startApp = function() {
+    currentBorne = document.getElementById('select-borne').value;
+    operatorName = document.getElementById('input-operator').value.trim() || 'Inconnu';
+    if (!currentBorne) { alert('Choisissez votre borne.'); return; }
+    localStorage.setItem('oph_borne', currentBorne);
+    localStorage.setItem('oph_operator', operatorName);
+
+    document.getElementById('view-setup').classList.remove('active');
+    document.getElementById('view-setup').style.display='none';
+    document.getElementById('app-bar').style.display='flex';
+    document.getElementById('app-bottom').style.display='flex';
+    document.getElementById('view-scan').classList.add('active');
+    document.getElementById('bar-borne').textContent = CHECKPOINTS[currentBorne].label;
+    document.getElementById('log-borne-name').textContent = CHECKPOINTS[currentBorne].label;
+    document.getElementById('stats-borne-name').textContent = CHECKPOINTS[currentBorne].label;
+
+    // Load local log
+    scanLog = JSON.parse(localStorage.getItem('oph_log_'+currentBorne) || '[]');
+    renderRecentScans();
+    updateStats();
+};
+
+// Auto-restore session
+(function restore() {
+    const savedUrl = localStorage.getItem('oph_fb_url');
+    if (savedUrl) {
+        document.getElementById('fb-url-input').value = savedUrl;
+        try {
+            initFirebase({ databaseURL: savedUrl });
+            document.getElementById('fb-connected-url').textContent = savedUrl;
+            showWizStep('connected');
+        } catch(e) { showWizStep('choice'); }
+    }
+    const savedBorne = localStorage.getItem('oph_borne');
+    const savedOp = localStorage.getItem('oph_operator');
+    if (savedBorne && savedOp) {
+        document.getElementById('select-borne').value = savedBorne;
+        document.getElementById('input-operator').value = savedOp;
+    }
+})();
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+window.switchView = function(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.bottom-bar button').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    document.querySelector('[data-view="'+name+'"]').classList.add('active');
+    if (name === 'stats') updateStats();
+    if (name === 'log') renderFullLog();
+};
+
+// ══════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════
+window.toggleCamera = async function() {
+    if (cameraOn) { await stopCamera(); return; }
+    try {
+        scanner = new Html5Qrcode('camera-box');
+        await scanner.start(
+            {facingMode:'environment'},
+            {fps:10, qrbox:{width:250,height:250}},
+            onQrScanned
+        );
+        cameraOn = true;
+        document.getElementById('btn-cam').textContent = 'Arreter la camera';
+        document.getElementById('btn-cam').style.background = 'var(--coral)';
+    } catch(e) { alert('Camera: '+e); }
+};
+
+async function stopCamera() {
+    if (scanner && cameraOn) {
+        try { await scanner.stop(); } catch(e) {}
+        cameraOn = false;
+        document.getElementById('btn-cam').textContent = 'Demarrer la camera';
+        document.getElementById('btn-cam').style.background = 'var(--teal)';
+        document.getElementById('camera-box').innerHTML = '';
+    }
+}
+
+function onQrScanned(code) {
+    if (cooldown) return;
+    cooldown = true;
+    setTimeout(() => cooldown = false, 2000);
+    processScan(code.trim().toUpperCase());
+}
+
+window.manualScan = function() {
+    const code = document.getElementById('manual-code').value.trim().toUpperCase();
+    if (code) { processScan(code); document.getElementById('manual-code').value = ''; }
+};
+
+document.getElementById('manual-code').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.manualScan();
+});
+
+// ══════════════════════════════════════════════
+// SCAN LOGIC
+// ══════════════════════════════════════════════
+function processScan(code) {
+    const person = DB[code];
+    if (!person) { showResult('unknown', code, null); return; }
+
+    const cp = CHECKPOINTS[currentBorne];
+    const hasAccess = cp.val !== undefined ? person.a[cp.idx] === cp.val : person.a[cp.idx] === 1;
+
+    if (!hasAccess) { showResult('denied', code, person); addLog(code, person, 'denied'); return; }
+
+    // Check already scanned (Firebase first, then local)
+    const scanKey = code + '_' + currentBorne;
+    const existing = allScans[scanKey];
+    if (existing) {
+        showResult('already', code, person, existing);
+        addLog(code, person, 'already');
+        return;
+    }
+    // Also check local
+    const localExisting = scanLog.find(s => s.code === code && s.status === 'ok');
+    if (localExisting) {
+        showResult('already', code, person, localExisting);
+        addLog(code, person, 'already');
+        return;
+    }
+
+    // ACCESS OK - Record scan
+    const record = {
+        code, name: person.n, org: person.o, borne: currentBorne,
+        borneLabel: CHECKPOINTS[currentBorne].label,
+        operator: operatorName,
+        timestamp: Date.now(),
+        diet: person.d || ''
+    };
+
+    if (db) {
+        db.ref('scans/' + scanKey).set(record).catch(e => console.error('Firebase write error:', e));
+    }
+
+    showResult('ok', code, person);
+    addLog(code, person, 'ok');
+    vibrate();
+}
+
+function addLog(code, person, status) {
+    const entry = { code, name: person.n, org: person.o, status, time: Date.now(), operator: operatorName, diet: person.d || '' };
+    scanLog.unshift(entry);
+    if (scanLog.length > 500) scanLog.pop();
+    localStorage.setItem('oph_log_' + currentBorne, JSON.stringify(scanLog));
+    renderRecentScans();
+}
+
+// ══════════════════════════════════════════════
+// RESULT OVERLAY
+// ══════════════════════════════════════════════
+function showResult(status, code, person, existingScan) {
+    const el = document.getElementById('result-overlay');
+    const icons = {ok:'&#10003;', denied:'&#10007;', already:'&#9888;', unknown:'?'};
+    const titles = {ok:'ACCES AUTORISE', denied:'ACCES REFUSE', already:'DEJA SCANNE', unknown:'BADGE INCONNU'};
+
+    let html = `<div class="result-icon">${icons[status]}</div><div class="result-title">${titles[status]}</div>`;
+
+    if (person) {
+        html += `<div class="result-name">${esc(person.n)}</div>`;
+        if (person.o) html += `<div class="result-org">${esc(person.o)}</div>`;
+        html += `<div class="result-detail">${esc(code)}</div>`;
+        if (person.d) html += `<div class="result-diet">Regime : ${esc(person.d)}</div>`;
+        if (status === 'already' && existingScan) {
+            const t = new Date(existingScan.timestamp || existingScan.time);
+            html += `<div class="result-already-info">
+                Scanne le ${t.toLocaleDateString('fr-FR')} a ${t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}<br>
+                Par : ${esc(existingScan.operator||'?')}<br>
+                Borne : ${esc(existingScan.borneLabel||existingScan.borne||currentBorne)}
+            </div>`;
+        }
+    } else {
+        html += `<div class="result-detail">Code : ${esc(code)}</div>`;
+    }
+
+    html += `<button class="result-close" onclick="closeResult()">Fermer</button>`;
+
+    el.className = 'result-overlay ' + status;
+    el.innerHTML = html;
+    el.style.display = 'flex';
+
+    // Sound
+    playSound(status);
+
+    // Auto-close after 4s
+    clearTimeout(el._timer);
+    el._timer = setTimeout(closeResult, 4000);
+}
+
+window.closeResult = function() {
+    document.getElementById('result-overlay').style.display = 'none';
+};
+
+// ══════════════════════════════════════════════
+// SOUND & VIBRATION
+// ══════════════════════════════════════════════
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(status) {
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.value = 0.3;
+        if (status === 'ok') { osc.frequency.value = 880; osc.type = 'sine'; gain.gain.value = 0.2; }
+        else if (status === 'denied') { osc.frequency.value = 200; osc.type = 'square'; }
+        else if (status === 'already') { osc.frequency.value = 440; osc.type = 'triangle'; }
+        else { osc.frequency.value = 300; osc.type = 'sawtooth'; }
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    } catch(e) {}
+}
+function vibrate() { try { navigator.vibrate && navigator.vibrate(100); } catch(e) {} }
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderRecentScans() {
+    const el = document.getElementById('recent-scans');
+    const recent = scanLog.slice(0, 8);
+    if (!recent.length) { el.innerHTML = '<div class="empty">Aucun scan</div>'; return; }
+    el.innerHTML = recent.map(s => {
+        const t = new Date(s.time);
+        return `<div class="log-item">
+            <div class="log-dot ${s.status}"></div>
+            <div class="log-info"><div class="log-name">${esc(s.name)}</div><div class="log-meta">${esc(s.code)} — ${esc(s.org)}</div></div>
+            <div class="log-time">${t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}<br><span style="color:var(--teal)">${esc(s.operator)}</span></div>
+        </div>`;
+    }).join('');
+}
+
+function renderFullLog() {
+    const el = document.getElementById('full-log');
+    if (!scanLog.length) { el.innerHTML = '<div class="empty">Aucun scan enregistre</div>'; return; }
+    el.innerHTML = scanLog.map(s => {
+        const t = new Date(s.time);
+        const labels = {ok:'Autorise',denied:'Refuse',already:'Doublon',unknown:'Inconnu'};
+        return `<div class="log-item">
+            <div class="log-dot ${s.status}"></div>
+            <div class="log-info"><div class="log-name">${esc(s.name)} <span style="font-weight:400;color:var(--text-dim);font-size:.8em">${labels[s.status]}</span></div><div class="log-meta">${esc(s.code)} — ${t.toLocaleString('fr-FR')} — <span style="color:var(--teal)">par ${esc(s.operator)}</span></div></div>
+        </div>`;
+    }).join('');
+}
+
+function updateStats() {
+    // Count from Firebase (global) for this borne
+    let okCount = 0, totalEligible = 0;
+    const cp = CHECKPOINTS[currentBorne];
+    for (const [code, p] of Object.entries(DB)) {
+        const hasAccess = cp.val !== undefined ? p.a[cp.idx] === cp.val : p.a[cp.idx] === 1;
+        if (hasAccess) totalEligible++;
+        if (allScans[code + '_' + currentBorne]) okCount++;
+    }
+    const deniedCount = scanLog.filter(s => s.status === 'denied').length;
+    const alreadyCount = scanLog.filter(s => s.status === 'already').length;
+
+    document.getElementById('stat-ok').textContent = okCount;
+    document.getElementById('stat-denied').textContent = deniedCount;
+    document.getElementById('stat-already').textContent = alreadyCount;
+    document.getElementById('stat-total').textContent = okCount + '/' + totalEligible;
+
+    // Not scanned list
+    const notScanned = [];
+    for (const [code, p] of Object.entries(DB)) {
+        const hasAccess = cp.val !== undefined ? p.a[cp.idx] === cp.val : p.a[cp.idx] === 1;
+        if (hasAccess && !allScans[code + '_' + currentBorne]) {
+            notScanned.push({code, ...p});
+        }
+    }
+    const el = document.getElementById('not-scanned-list');
+    if (!notScanned.length) { el.innerHTML = '<div class="empty">Tous les participants ont ete scannes !</div>'; return; }
+    el.innerHTML = notScanned.map(p => `<div class="log-item"><div class="log-info"><div class="log-name">${esc(p.n)}</div><div class="log-meta">${esc(p.code)} — ${esc(p.o)}</div></div></div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════════
+window.doSearch = function() {
+    const q = document.getElementById('search-input').value.trim().toLowerCase();
+    const resCard = document.getElementById('search-results-card');
+    const resEl = document.getElementById('search-results');
+    document.getElementById('search-detail').style.display = 'none';
+
+    if (q.length < 2) { resCard.style.display = 'none'; return; }
+
+    const results = Object.entries(DB).filter(([code, p]) =>
+        p.n.toLowerCase().includes(q) || code.toLowerCase().includes(q) || p.o.toLowerCase().includes(q)
+    ).slice(0, 15);
+
+    if (!results.length) { resCard.style.display = 'block'; resEl.innerHTML = '<div class="empty">Aucun resultat</div>'; return; }
+
+    resCard.style.display = 'block';
+    resEl.innerHTML = results.map(([code, p]) =>
+        `<div class="search-result" onclick="showPersonDetail('${code}')">
+            <div class="sr-name">${esc(p.n)}</div>
+            <div class="sr-org">${esc(p.o)}</div>
+            <div class="sr-code">${code}</div>
+        </div>`
+    ).join('');
+};
+
+window.showPersonDetail = function(code) {
+    const p = DB[code];
+    if (!p) return;
+    const el = document.getElementById('search-detail');
+    const labels = ['J1 Pleniere','J1 Cocktail','J1 Apres-midi','J1 Activite','J1 Gala','J2 Pleniere','J2 Cocktail','Goodie Bag'];
+    const actLabels = {0:'Aucune', 1:'Visite Velodrome', 2:'Circuit petit train'};
+
+    let accessHtml = p.a.map((v, i) => {
+        let label = labels[i];
+        let active = v > 0;
+        if (i === 3) { label = actLabels[v] || 'Aucune'; active = v > 0; }
+        return `<li><span class="dot ${active?'yes':'no'}"></span>${label}</li>`;
+    }).join('');
+
+    // Check scan status for all checkpoints
+    let scanStatusHtml = '';
+    for (const [bKey, bConf] of Object.entries(CHECKPOINTS)) {
+        const scanned = allScans[code + '_' + bKey];
+        if (scanned) {
+            const t = new Date(scanned.timestamp);
+            scanStatusHtml += `<li style="color:var(--green)"><span class="dot yes"></span>${bConf.label} — ${t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} par ${esc(scanned.operator)}</li>`;
+        }
+    }
+
+    el.style.display = 'block';
+    el.innerHTML = `<div class="card">
+        <h2>${esc(code)}</h2>
+        <div style="font-size:1.2em;font-weight:700;margin-bottom:4px">${esc(p.n)}</div>
+        <div style="color:var(--text-dim);margin-bottom:12px">${esc(p.o)}</div>
+        ${p.d ? '<div style="background:#FFF3E0;padding:6px 12px;border-radius:8px;color:#E65100;font-size:.85em;margin-bottom:12px">Regime : '+esc(p.d)+'</div>' : ''}
+        <h2 style="margin-top:12px">Acces</h2>
+        <ul class="access-list">${accessHtml}</ul>
+        ${scanStatusHtml ? '<h2 style="margin-top:16px">Scans effectues</h2><ul class="access-list">'+scanStatusHtml+'</ul>' : ''}
+    </div>`;
+};
+
+// ══════════════════════════════════════════════
+// EXPORT CSV
+// ══════════════════════════════════════════════
+window.exportCSV = function() {
+    if (!scanLog.length) { alert('Aucun scan a exporter.'); return; }
+    let csv = 'Code;Nom;Organisation;Statut;Date;Heure;Operateur;Regime\n';
+    scanLog.forEach(s => {
+        const t = new Date(s.time);
+        csv += `${s.code};${s.name};${s.org};${s.status};${t.toLocaleDateString('fr-FR')};${t.toLocaleTimeString('fr-FR')};${s.operator};${s.diet||''}\n`;
+    });
+    const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `scans_${currentBorne}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+};
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+})();
+</script>
+</body>
+</html>
