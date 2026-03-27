@@ -637,11 +637,11 @@ function onQrScanned(code) {
     if (cooldown) return;
     cooldown = true;
     setTimeout(() => cooldown = false, 2000);
-    processScan(code.trim().toUpperCase());
+    processScan(code.trim());
 }
 
 window.manualScan = function() {
-    const code = document.getElementById('manual-code').value.trim().toUpperCase();
+    const code = document.getElementById('manual-code').value.trim();
     if (code) { processScan(code); document.getElementById('manual-code').value = ''; }
 };
 
