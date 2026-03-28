@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>58e Congres OPH - Controle d'acces</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -111,7 +114,7 @@
     <div class="setup-header" style="padding-top:80px">
         <h1>58e Congres OPH</h1>
         <p>Marseille — 16-17 Avril 2026</p>
-        <p style="margin-top:4px;font-size:.8em;color:var(--teal)">Application de controle d'acces</p>
+        <p style="margin-top:4px;font-size:.8em;color:var(--teal)">Application de controle d'acces — v3</p>
     </div>
     <div class="card" style="max-width:360px;margin:20px auto">
         <div class="form-group">
@@ -653,13 +656,13 @@ document.getElementById('manual-code').addEventListener('keydown', e => {
 // SCAN LOGIC
 // ══════════════════════════════════════════════
 function processScan(raw) {
-    // Parse QR content: could be JSON {"ID":"OPH2026-001",...} or plain code "OPH2026-001"
-    let code = raw;
-    try {
-        const json = JSON.parse(raw);
-        if (json.ID) code = json.ID.toUpperCase();
-    } catch(e) {
-        code = raw.trim().toUpperCase();
+    let code = raw.trim();
+    // Extract OPH2026-XXX from ANY format (plain text, JSON, etc.)
+    const match = code.match(/OPH2026-\d{3}/i);
+    if (match) {
+        code = match[0].toUpperCase();
+    } else {
+        try { const j = JSON.parse(code); if (j.ID) code = j.ID.toUpperCase(); } catch(e) { code = code.toUpperCase(); }
     }
 
     const person = DB[code];
