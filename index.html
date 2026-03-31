@@ -271,6 +271,9 @@
         <h2>Participants non encore scannes</h2>
         <div id="not-scanned-list"><div class="empty">Chargement...</div></div>
     </div>
+    <div class="card" style="text-align:center">
+        <button class="btn btn-outline btn-sm" onclick="resetAllScans()" style="color:var(--red);border-color:var(--red)">Reinitialiser l'historique des scans</button>
+    </div>
 </div>
 
 <!-- ==================== SEARCH VIEW ==================== -->
@@ -656,7 +659,7 @@ window.toggleCamera = async function() {
         scanner = new Html5Qrcode('camera-box');
         await scanner.start(
             {facingMode:'environment'},
-            {fps:10, qrbox:{width:250,height:250}},
+            {fps:15, qrbox:{width:300,height:300}, aspectRatio:1.0},
             onQrScanned
         );
         cameraOn = true;
@@ -678,7 +681,7 @@ async function stopCamera() {
 function onQrScanned(code) {
     if (cooldown) return;
     cooldown = true;
-    setTimeout(() => cooldown = false, 2000);
+    setTimeout(() => cooldown = false, 1000);
     processScan(code.trim());
 }
 
@@ -974,6 +977,22 @@ window.exportCSV = function() {
     a.href = URL.createObjectURL(blob);
     a.download = `scans_${currentBorne}_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
+};
+
+// ══════════════════════════════════════════════
+// RESET SCANS
+// ══════════════════════════════════════════════
+window.resetAllScans = function() {
+    if (!confirm('Voulez-vous vraiment effacer tout l\'historique des scans ? Cette action est irreversible.')) return;
+    // Clear local logs for all checkpoints
+    Object.keys(CHECKPOINTS).forEach(k => localStorage.removeItem('oph_log_' + k));
+    scanLog = [];
+    allScans = {};
+    // Clear Firebase scans if connected
+    if (db) { db.ref('scans').remove().catch(e => console.error(e)); }
+    renderRecentScans();
+    updateStats();
+    alert('Historique efface !');
 };
 
 // ══════════════════════════════════════════════
