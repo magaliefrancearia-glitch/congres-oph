@@ -470,6 +470,45 @@ const CHECKPOINTS = {
 };
 
 // ══════════════════════════════════════════════
+// NAME INDEX (for badge QR matching)
+// ══════════════════════════════════════════════
+const NAME_INDEX = {};
+for (const [code, p] of Object.entries(DB)) {
+    const key = p.n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!NAME_INDEX[key]) NAME_INDEX[key] = code;
+}
+
+function parseBadgeQR(text) {
+    if (!text.includes('Prénom:') || !text.includes('Nom:')) return null;
+    const get = (field) => {
+        const m = text.match(new RegExp(field + '\\s*:\\s*(.+)'));
+        return m ? m[1].trim() : '';
+    };
+    const prenom = get('Prénom');
+    const nom = get('Nom');
+    if (!prenom || !nom) return null;
+
+    const societe = get('Société');
+    const jour1 = get('Jour 1') === 'Oui' ? 1 : 0;
+    const actRaw = get('Activité');
+    let activite = 0;
+    if (actRaw.includes('Vélodrome') || actRaw.includes('Velodrome')) activite = 1;
+    else if (actRaw.includes('petit train')) activite = 2;
+    const gala = get('Soirée de gala') === 'Oui' ? 1 : 0;
+    const jour2 = get('Jour 2') === 'Oui' ? 1 : 0;
+    const goodies = get('Goodies') === 'Oui' ? 1 : 0;
+    const dietRaw = get('Préférences alimentaires');
+    const diet = (dietRaw && dietRaw !== 'Aucune') ? dietRaw : '';
+
+    return {
+        fullName: prenom + ' ' + nom,
+        org: societe,
+        access: [jour1, jour1, jour1, activite, gala, jour2, jour2, goodies],
+        diet: diet
+    };
+}
+
+// ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
 let currentBorne = '';
@@ -657,15 +696,32 @@ document.getElementById('manual-code').addEventListener('keydown', e => {
 // ══════════════════════════════════════════════
 function processScan(raw) {
     let code = raw.trim();
-    // Extract OPH2026-XXX from ANY format (plain text, JSON, etc.)
-    const match = code.match(/OPH2026-\d{3}/i);
-    if (match) {
-        code = match[0].toUpperCase();
+    let person = null;
+
+    // 1) Try new badge QR format (text with Prénom:/Nom:)
+    const badge = parseBadgeQR(code);
+    if (badge) {
+        const nameKey = badge.fullName.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const dbCode = NAME_INDEX[nameKey];
+        if (dbCode) {
+            code = dbCode;
+            person = DB[dbCode];
+        } else {
+            // Not in DB — build virtual entry from badge QR data
+            code = 'BADGE-' + nameKey.replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-');
+            person = { n: badge.fullName, o: badge.org, a: badge.access, d: badge.diet };
+        }
     } else {
-        try { const j = JSON.parse(code); if (j.ID) code = j.ID.toUpperCase(); } catch(e) { code = code.toUpperCase(); }
+        // 2) Old format: extract OPH2026-XXX
+        const match = code.match(/OPH2026-\d{3}/i);
+        if (match) {
+            code = match[0].toUpperCase();
+        } else {
+            try { const j = JSON.parse(code); if (j.ID) code = j.ID.toUpperCase(); } catch(e) { code = code.toUpperCase(); }
+        }
+        person = DB[code];
     }
 
-    const person = DB[code];
     if (!person) { showResult('unknown', code, null); return; }
 
     // Check access from internal database
