@@ -635,6 +635,10 @@ window.startApp = function() {
     if (savedBorne && savedOp) {
         document.getElementById('select-borne').value = savedBorne;
         document.getElementById('input-operator').value = savedOp;
+        // Auto-start if already configured
+        if (localStorage.getItem('oph_auth') === '1') {
+            startApp();
+        }
     }
 })();
 
