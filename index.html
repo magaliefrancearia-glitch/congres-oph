@@ -337,7 +337,7 @@ function unlockApp() {
 window.doLogin = function() {
     const pw = document.getElementById('login-pw').value;
     if (pw === APP_PASSWORD) {
-        sessionStorage.setItem('oph_auth', '1');
+        localStorage.setItem('oph_auth', '1');
         unlockApp();
     } else {
         document.getElementById('login-error').textContent = 'Mot de passe incorrect';
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('login-pw').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') doLogin();
     });
-    if (sessionStorage.getItem('oph_auth') === '1') {
+    if (localStorage.getItem('oph_auth') === '1') {
         unlockApp();
     }
 });
