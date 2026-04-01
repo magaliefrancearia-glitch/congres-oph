@@ -271,6 +271,9 @@
         <h2>Participants non encore scannes</h2>
         <div id="not-scanned-list"><div class="empty">Chargement...</div></div>
     </div>
+    <div class="card" style="text-align:center">
+        <button class="btn btn-outline btn-sm" onclick="resetAllScans()" style="color:var(--red);border-color:var(--red)">Reinitialiser l'historique des scans</button>
+    </div>
 </div>
 
 <!-- ==================== SEARCH VIEW ==================== -->
@@ -334,7 +337,7 @@ function unlockApp() {
 window.doLogin = function() {
     const pw = document.getElementById('login-pw').value;
     if (pw === APP_PASSWORD) {
-        sessionStorage.setItem('oph_auth', '1');
+        localStorage.setItem('oph_auth', '1');
         unlockApp();
     } else {
         document.getElementById('login-error').textContent = 'Mot de passe incorrect';
@@ -345,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('login-pw').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') doLogin();
     });
-    if (sessionStorage.getItem('oph_auth') === '1') {
+    if (localStorage.getItem('oph_auth') === '1') {
         unlockApp();
     }
 });
@@ -370,91 +373,230 @@ window.goBackToSetup = function() {
 // ══════════════════════════════════════════════
 // PARTICIPANT DATABASE
 // a = [j1_plen, j1_cock, j1_aprem, j1_activ, j1_gala, j2_plen, j2_cock, goodie]
-// j1_activ: 0=aucune, 1=velodrome, 2=petit_train
+/// j1_activ: 0=aucune, 1=velodrome, 2=petit_train, 3=frioul
 // ══════════════════════════════════════════════
 const DB={
-"OPH2026-001":{n:"Benjamin ANDRE",o:"OISE HABITAT",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-002":{n:"Audrey ARQUET",o:"TARN ET GARONNE HABITAT",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-003":{n:"Philippe ASPAR",o:"TARN HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-004":{n:"Martial AUBRY",o:"VAR HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-005":{n:"Pierre-Marie BECKAERT",o:"DOMITIA HABITAT OPH",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-006":{n:"Cécile BELARD DU PLANTYS",o:"PARIS HABITAT OPH",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-007":{n:"Georges BELLOUR",o:"BREST METROPOLE HABITAT",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-008":{n:"Hoberg BERNARD",o:"VALENCE ROMANS HABITAT",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-009":{n:"Bertrand BOISSERIE",o:"PERIGORD HABITAT",a:[1,1,1,2,1,1,0,1]},
-"OPH2026-010":{n:"Bertrand BOISSERIE",o:"BERTRAND BOISSERIE",a:[1,1,1,2,1,1,0,1]},
-"OPH2026-011":{n:"Stephanie BONNET",o:"EKIDOM",a:[1,1,0,2,1,1,0,1]},
-"OPH2026-012":{n:"Laurent BORDAS",o:"ANGERS LOIRE HABITAT OPH",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-013":{n:"Grégory BOUCHART",o:"",a:[0,0,0,1,1,0,0,1]},
-"OPH2026-014":{n:"Christophe BOUSCAUD",o:"ORNE HABITAT",a:[1,1,1,1,1,1,1,1],d:"Crustacés"},
-"OPH2026-015":{n:"Karine BOUSQUAIL",o:"Office Public de l\'Habitat du Gers",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-016":{n:"Alain BRAUN",o:"acm Habitat",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-017":{n:"Philippe BRUNET-DEBAINES",o:"OPHIS du Puy-de-Dôme",a:[1,1,1,1,1,1,1,1],d:"Céleri"},
-"OPH2026-018":{n:"Christophe BUREAU",o:"INOLYA",a:[0,1,1,1,1,1,1,1]},
-"OPH2026-019":{n:"Stéphane CARASSOU",o:"HABITAT 44",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-020":{n:"Samuel CARPENTIER",o:"ARDECHE HABITAT",a:[1,1,0,1,1,1,1,1]},
-"OPH2026-021":{n:"Nathalie CASTAING-COURAUD",o:"SEMIS",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-022":{n:"Philippe CATALAN",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-023":{n:"Franck CECCATO",o:"MOSELIS",a:[1,1,1,0,1,1,1,1],d:"Végétarien"},
-"OPH2026-024":{n:"Elodie CHALOPIN",o:"OPH de l\'Ariège",a:[1,1,1,0,1,1,1,1],d:"Végétarien"},
-"OPH2026-025":{n:"Jacques CHAMBAUD",o:"Hamaris OPH de la Haute Marne",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-026":{n:"Agnès CHAROUSSET",o:"LOT HABITAT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-027":{n:"Mondoloni CHRISTEL",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-028":{n:"Aloisio CHRISTOPHE",o:"OPH 05",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-029":{n:"Pascal CLAUDE",o:"Val d\'Oise Habitat",a:[1,1,1,2,0,1,0,1]},
-"OPH2026-030":{n:"Pascal CLAUDE",o:"Val d\'Oise Habitat",a:[1,1,1,2,0,1,0,1]},
-"OPH2026-031":{n:"Karen CLIVIO FONTANY",o:"MACON HABITAT",a:[1,1,0,0,1,1,1,1]},
-"OPH2026-032":{n:"Jean-Bernard DAMBIER",o:"PROVENCE METROPOLE LOGEMENT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-033":{n:"Laurent DENIS",o:"VAR HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-034":{n:"Laurent DROULEZ",o:"Laurent DROULEZ",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-035":{n:"Gilles DUPONT",o:"HERAULT LOGEMENT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-036":{n:"Kaba FREDERIQUE",o:"EST ENSEMBLE HABITAT",a:[1,1,1,0,1,1,0,1]},
-"OPH2026-037":{n:"Charlette GALLOUET",o:"HABITAT76",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-038":{n:"Eric GIMER",o:"Habitat76",a:[0,1,0,1,1,0,1,1]},
-"OPH2026-039":{n:"Jean Luc GORCE",o:"AQUITANIS",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-040":{n:"Christian HARCOUET",o:"VALOPHIS HABITAT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-041":{n:"Vandebeulque JACQUES",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-042":{n:"Denis JANAUD",o:"HABITAT AUDOIS",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-043":{n:"Sébastien JOLIS",o:"EST ENSEMBLE HABITAT",a:[1,1,1,0,1,1,0,1]},
-"OPH2026-044":{n:"David JONNARD",o:"OPAC SAVOIE",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-045":{n:"Cyrille KERVRAN",o:"SAINT-JUNIEN HABITAT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-046":{n:"Grégory LAFFAIRE",o:"CANTAL HABITAT",a:[1,1,1,1,0,1,0,1]},
-"OPH2026-047":{n:"Jean-Pierre LAFONT-CASSIAT",o:"OPH 65",a:[0,1,0,0,1,0,1,1]},
-"OPH2026-048":{n:"Thomas LE GALL",o:"GRAND BOURG HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-049":{n:"Gildas LE GRAND",o:"OPH OPAC QUIMPER CORNOUAILLE",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-050":{n:"Nathalie LEGEAY",o:"VENDEE HABITAT",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-051":{n:"Séverine LEPLUS",o:"Val d\'Oise Habitat",a:[1,1,1,2,0,1,0,1]},
-"OPH2026-052":{n:"Christophe LIEVIN",o:"COLOMBES HABITAT PUBLIC",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-053":{n:"Lionel MAHUET",o:"meurthe & moselle HABITAT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-054":{n:"Jean-Baptiste MALINGRE",o:"OPHEA",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-055":{n:"Julien MATTEI",o:"OPHEA",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-056":{n:"Gregoire MICHEL",o:"ASSOCIATION DES DG PACA CORSE",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-057":{n:"Céline MOREAU",o:"LIMOGES HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-058":{n:"Pascal NAYME",o:"DEUX FLEUVES LOIRE HABITAT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-059":{n:"Frank NICOL",o:"VAL TOURAINE HABITAT",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-060":{n:"Jérôme ORELU",o:"Jérôme Orelu",a:[1,1,0,2,0,1,1,1]},
-"OPH2026-061":{n:"Mounia OUAFELLA PATIER",o:"OPH TOUL HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-062":{n:"Olivier PASQUET",o:"OLIVIER PASQUET",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-063":{n:"Marc PATAY",o:"NANTES METROPOLE HABITAT",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-064":{n:"Jean-Sebastien PAULUS",o:"TERRITOIRE HABITAT",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-065":{n:"Vincent PERONNAUD",o:"VINCENT PERONNAUD",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-066":{n:"Maryline PERRONNE",o:"27400001700013",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-067":{n:"Eric PETER",o:"m2A Habitat",a:[1,1,1,2,0,1,1,1]},
-"OPH2026-068":{n:"Marianne PICARD",o:"Marianne PICARD",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-069":{n:"Linda PRADEL",o:"TARN ET GARONNE HABITAT",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-070":{n:"Benoit RATIER",o:"MELDOMYS",a:[1,1,1,2,0,1,1,1]},
-"OPH2026-071":{n:"Sandrine ROTZLER",o:"HABITAT SUD ATLANTIC",a:[1,1,1,1,1,1,1,1]},
-"OPH2026-072":{n:"Antoine ROUSSEAU",o:"Antoine Rousseau - Archipel Habitat",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-073":{n:"Lausséni SANGARE",o:"HABITAT SUD ATLANTIC",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-074":{n:"Laurent SAUSSAYE",o:"SAUSSAYE Laurent",a:[1,1,1,0,0,1,1,1]},
-"OPH2026-075":{n:"Manuel SMADJA",o:"COTE D\'AZUR HABITAT",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-076":{n:"Frédéric SUCHET",o:"Creusalis",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-077":{n:"Spiaggia THIERRY",o:"Logis Cévenols",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-078":{n:"Thierry TOURTOULOU",o:"OPH de l\'Ariège",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-079":{n:"Jean-Luc TRIOLLET",o:"DYNACITE",a:[0,1,0,0,1,0,1,1]},
-"OPH2026-080":{n:"Damien VANOVERSCHELDE",o:"Damien VANOVERSCHELDE",a:[1,1,1,2,1,1,1,1]},
-"OPH2026-081":{n:"Vincente VIAL",o:"OPHEOR",a:[1,1,1,0,1,1,1,1]},
-"OPH2026-082":{n:"Marie-Laure VUITTENEZ",o:"Habitat & Métropole",a:[1,1,1,2,1,1,1,1]}
+// ── PARTICIPANTS (001-107) ──
+"OPH2026-001":{n:"Véronique ALBERT",o:"VALLÉE SUD HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-002":{n:"Christophe ALOISIO",o:"OPH 05",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-003":{n:"Benjamin ANDRÉ",o:"OISE HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-004":{n:"Audrey ARQUET",o:"TARN ET GARONNE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-005":{n:"Philippe ASPAR",o:"TARN HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-006":{n:"Patrick BARDON",o:"VALDEVY",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-007":{n:"Pierre-Marie BECKAERT",o:"DOMITIA HABITAT OPH",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-008":{n:"Cécile BELARD DU PLANTYS",o:"PARIS HABITAT OPH",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-009":{n:"Georges BELLOUR",o:"BREST MÉTROPOLE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-010":{n:"Jérémy BENOIST",o:"SEVRE LOIRE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-011":{n:"Véronique BERRUE",o:"MELDOMYS",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-012":{n:"Nicolas BERTHON",o:"ADVIVO",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-013":{n:"Bertrand BOISSERIE",o:"PERIGORD HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-014":{n:"Stéphanie BONNET",o:"EKIDOM",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-015":{n:"Laurent BORDAS",o:"ANGERS LOIRE HABITAT OPH",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-016":{n:"Grégory BOUCHART",o:"LE MANS HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-017":{n:"Christophe BOUSCAUD",o:"ORNE HABITAT",a:[1,1,1,1,1,1,1,1],d:"Crustacés"},
+"OPH2026-018":{n:"Karine BOUSQUAIL",o:"OFFICE PUBLIC DE L\'HABITAT DU GERS",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-019":{n:"Alain BRAUN",o:"ACM HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-020":{n:"Philippe BRUNET-DEBAINES",o:"OPHIS DU PUY-DE-DÔME",a:[1,1,1,1,1,1,1,1],d:"Céleri"},
+"OPH2026-021":{n:"Christophe BUREAU",o:"INOLYA",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-022":{n:"Stéphane CARASSOU",o:"HABITAT 44",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-023":{n:"Samuel CARPENTIER",o:"ARDECHE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-024":{n:"Nathalie CASTAING-COURAUD",o:"SEMIS",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-025":{n:"Philippe CATALAN",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-026":{n:"Armand CATHALA",o:"HABITAT AUDOIS",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-027":{n:"Maya CAZIN",o:"MAYA CAZIN",a:[1,1,1,1,0,1,1,1],d:"Allergie au gingembre"},
+"OPH2026-028":{n:"Franck CECCATO",o:"MOSELIS",a:[1,1,1,0,1,1,1,1],d:"Végétarien"},
+"OPH2026-029":{n:"Élodie CHALOPIN",o:"OPH DE L\'ARIÈGE",a:[1,1,1,0,1,1,1,1],d:"Végétarien"},
+"OPH2026-030":{n:"Jacques CHAMBAUD",o:"HAMARIS OPH DE LA HAUTE MARNE",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-031":{n:"Yann CHEVALIER",o:"HAUTS-DE-SEINE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-032":{n:"Pascal CLAUDE",o:"VAL D\'OISE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-033":{n:"Karen CLIVIO FONTANY",o:"MACON HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-034":{n:"Philippe CURTIL",o:"TOULOUSE MÉTROPOLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-035":{n:"Jérôme DAL BORGO",o:"OMH DU GRAND NANCY LYSA BAGARD",a:[1,1,1,1,0,1,1,1]},
+"OPH2026-036":{n:"Jean-Bernard DAMBIER",o:"PROVENCE METROPOLE LOGEMENT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-037":{n:"Hélène DELMOTTE",o:"MÉTROPOLE NICE CÔTE D\'AZUR",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-038":{n:"Laurent DROULEZ",o:"LAURENT DROULEZ",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-039":{n:"Gilles DUPONT",o:"HERAULT LOGEMENT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-040":{n:"Stéphane DUPORT-ROSAND",o:"ACTIS",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-041":{n:"Christine FLEURET",o:"OPAC 36",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-042":{n:"Frédéric FOURET",o:"PARTENORD HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-043":{n:"Jean-Noël FREIXINOS",o:"GRANDLYON HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-044":{n:"Charlette GALLOUET",o:"HABITAT76",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-045":{n:"Éric GIMER",o:"HABITAT76",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-046":{n:"Jean Luc GORCE",o:"AQUITANIS",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-047":{n:"Michel GRÉGOIRE",o:"ASSOCIATION DES DG PACA CORSE",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-048":{n:"Christian HARCOUET",o:"VALOPHIS HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-049":{n:"Caroline HECQUET",o:"FÉDÉRATION NATIONALE DES DIRECTEURS D\'OPH",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-050":{n:"Guy HENRION",o:"SARTHE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-051":{n:"Bernard HOBERG",o:"VALENCE ROMANS HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-052":{n:"Denis JANAUD",o:"HABITAT AUDOIS",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-053":{n:"Sébastien JOLIS",o:"EST ENSEMBLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-054":{n:"David JONNARD",o:"OPAC SAVOIE",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-055":{n:"Mikaël JUNGERS",o:"HABITAT 17",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-056":{n:"Frédérique KABA",o:"EST ENSEMBLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-057":{n:"Cyrille KERVRAN",o:"SAINT-JUNIEN HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-058":{n:"Grégory LAFFAIRE",o:"CANTAL HABITAT",a:[1,1,1,1,0,1,1,1]},
+"OPH2026-059":{n:"Jean-Pierre LAFONT-CASSIAT",o:"OPH 65",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-060":{n:"Luc LAVENTURE",o:"TOULOUSE MÉTROPOLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-061":{n:"Thomas LE GALL",o:"GRAND BOURG HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-062":{n:"Gildas LE GRAND",o:"OPH OPAC QUIMPER CORNOUAILLE",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-063":{n:"Nathalie LEGEAY",o:"VENDEE HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-064":{n:"Séverine LEPLUS",o:"VAL D\'OISE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-065":{n:"Christophe LIEVIN",o:"COLOMBES HABITAT PUBLIC",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-066":{n:"Lionel MAHUET",o:"MEURTHE & MOSELLE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-067":{n:"Jean-Baptiste MALINGRE",o:"OPHEA",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-068":{n:"Julien MATTEI",o:"OPHEA",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-069":{n:"Corinne MESNIL",o:"HABITAT DROUAIS",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-070":{n:"Christel MONDOLONI",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-071":{n:"Sigrid MONNIER",o:"GIRONDE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-072":{n:"Céline MOREAU",o:"LIMOGES HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-073":{n:"Pascal NAYME",o:"DEUX FLEUVES LOIRE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-074":{n:"Frank NICOL",o:"VAL TOURAINE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-075":{n:"Jérôme ORELU",o:"ÉPINAL HABITAT",a:[1,1,1,2,0,1,1,1]},
+"OPH2026-076":{n:"Mounia OUAFELLA PATIER",o:"OPH TOUL HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-077":{n:"Delphine PAILLARDIN",o:"OPH DE SAINT-DIZIER",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-078":{n:"Olivier PASQUET",o:"OLIVIER PASQUET",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-079":{n:"Marc PATAY",o:"NANTES METROPOLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-080":{n:"Jean-Sébastien PAULUS",o:"TERRITOIRE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-081":{n:"Vincent PERONNAUD",o:"OPAC DE L\'OISE",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-082":{n:"Maryline PERRONNE",o:"XL HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-083":{n:"Éric PETER",o:"M2A HABITAT",a:[1,1,1,2,0,1,1,1]},
+"OPH2026-084":{n:"Marianne PICARD",o:"MARIANNE PICARD",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-085":{n:"Linda PRADEL",o:"TARN ET GARONNE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-086":{n:"Eric PROTTE",o:"OPH TROYES AUBE HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-087":{n:"David QUINT",o:"AMSOM HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-088":{n:"Benoît RATIER",o:"MELDOMYS",a:[1,1,1,2,0,1,1,1]},
+"OPH2026-089":{n:"Céline REYNAUD",o:"EST MÉTROPOLE HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-090":{n:"Mehdi RIACHI",o:"BAIE DE SOMME HABITAT",a:[1,1,1,0,0,1,1,1],d:"Halal"},
+"OPH2026-091":{n:"Guillaume RIO",o:"DEUX FLEUVES RHONE HABITAT",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-092":{n:"Sandrine ROTZLER",o:"HABITAT SUD ATLANTIC",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-093":{n:"Antoine ROUSSEAU",o:"ANTOINE ROUSSEAU - ARCHIPEL HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-094":{n:"Hans RYCKEBOER",o:"TERRE D\'OPALE HABITAT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-095":{n:"Lausséni SANGARE",o:"HABITAT SUD ATLANTIC",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-096":{n:"Laurent SAUSSAYE",o:"SAUSSAYE LAURENT",a:[1,1,1,0,0,1,1,1]},
+"OPH2026-097":{n:"Grégoire SIMON",o:"TOURS MÉTROPOLE HABITAT",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-098":{n:"Manuel SMADJA",o:"COTE D\'AZUR HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-099":{n:"Thierry SPIAGGIA",o:"LOGIS CÉVENOLS",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-100":{n:"Frédéric SUCHET",o:"CREUSALIS",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-101":{n:"Marie-José THOURET",o:"OPH COULOMMIERS",a:[1,1,1,2,0,1,1,1]},
+"OPH2026-102":{n:"Stéphanie TOUMINET",o:"MORBIHAN",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-103":{n:"Thierry TOURTOULOU",o:"OPH DE L\'ARIÈGE",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-104":{n:"Jacques VANDEBEULQUE",o:"TOULON HABITAT MEDITERRANEE",a:[1,1,1,1,1,1,1,1]},
+"OPH2026-105":{n:"Damien VANOVERSCHELDE",o:"13 HABITAT",a:[1,1,1,2,1,1,1,1]},
+"OPH2026-106":{n:"Vincente VIAL",o:"OPHEOR",a:[1,1,1,0,1,1,1,1]},
+"OPH2026-107":{n:"Marie-Laure VUITTENEZ",o:"HABITAT & MÉTROPOLE",a:[1,1,1,2,1,1,1,1]},
+// ── INTERVENANTS (108-120) ──
+"OPH2026-108":{n:"Martial AUBRY",o:"VAR HABITAT",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-109":{n:"Claire BRIGANT",o:"VAL TOURAINE HABITAT",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-110":{n:"Emmanuelle COSSE",o:"UNION SOCIALE DE L\'HABITAT",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-111":{n:"Laurent DENIS",o:"VAR HABITAT",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-112":{n:"Franck DESSEMON",o:"UNTEC",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-113":{n:"Laurent GOYARD",o:"FOPH",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-114":{n:"Sonia GUELTON",o:"LAB\'URBA",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-115":{n:"Claire JUILLARD",o:"ANIL",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-116":{n:"Cédric LEFEBVRE",o:"3F NORMANVIE",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-117":{n:"Michel MENARD",o:"FÉDÉRATION DES OFFICES PUBLICS DE L\'HABITAT",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-118":{n:"Anne-Emmanuelle OUVRARD",o:"MINISTÈRE DE LA TRANSITION ÉCOLOGIQUE & COHÉSION DES TERRITOIRES",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-119":{n:"Isabelle PORTAFAIX",o:"HABITAT & MÉTROPOLE",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+"OPH2026-120":{n:"Jean-Luc TRIOLLET",o:"FÉDÉRATION NATIONALE DES DIRECTEURS GÉNÉRAUX D\'OPH",a:[1,1,1,0,1,1,1,1],t:"INTERVENANT"},
+// ── PARTENAIRES (121-218) ──
+"OPH2026-121":{n:"Thierry DEGORCE",o:"ISERBA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-122":{n:"Stéphane LAZZARONI",o:"ISERBA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-123":{n:"Clément FORGENEUF",o:"ISERBA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-124":{n:"Johan BEAUDOING",o:"ISERBA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-125":{n:"Nathalie MOUGEOT",o:"EDF",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-126":{n:"Nadège TISSIER",o:"EDF",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-127":{n:"Patrick GUIBBOLINI",o:"EDF",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-128":{n:"Eric MIQUEL",o:"EDF",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-129":{n:"Marco SCANNELLA",o:"EDF",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-130":{n:"Michel LAVIGNE",o:"PROXISERVE",a:[1,1,1,0,1,0,0,0],t:"PARTENAIRE"},
+"OPH2026-131":{n:"Didier MICHEL",o:"PROXISERVE",a:[1,1,1,0,1,0,0,0],t:"PARTENAIRE"},
+"OPH2026-132":{n:"Marie SOUPLET",o:"PROXISERVE",a:[1,1,1,0,1,0,0,0],t:"PARTENAIRE"},
+"OPH2026-133":{n:"Marie-Ange LAMOTHE",o:"PROXISERVE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-134":{n:"Michel DUCOMMUN",o:"PROXISERVE",a:[1,1,1,0,1,0,0,0],t:"PARTENAIRE"},
+"OPH2026-135":{n:"Marc GROSJEAN",o:"PROXISERVE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-136":{n:"Rémy FERNANDEZ",o:"PROXISERVE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-137":{n:"Jérôme JEAN",o:"PROXISERVE",a:[1,1,1,0,1,0,0,0],t:"PARTENAIRE"},
+"OPH2026-138":{n:"Nicolas FORGET",o:"PROXISERVE",a:[1,1,1,0,1,0,0,0],t:"PARTENAIRE"},
+"OPH2026-139":{n:"Nicolas DERVEAUX",o:"VPSITEX",a:[1,1,1,2,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-140":{n:"Philippe COURTETE",o:"VPSITEX",a:[1,1,1,1,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-141":{n:"Éric LIARD",o:"VPSITEX",a:[1,1,1,1,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-142":{n:"Benoît CHARLET",o:"VPSITEX",a:[1,1,1,2,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-143":{n:"Céline NARCY",o:"QUADRA",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-144":{n:"Jean-Marie LEROY",o:"QUADRA",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-145":{n:"Anne DUMONT-LAUVERGNE",o:"QUADRA",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-146":{n:"Robin HAMADI",o:"ARHLM PACA & CORSE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-147":{n:"Danièle AMET",o:"ARHLM PACA & CORSE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-148":{n:"Catherine ZUCCA",o:"ACCEO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-149":{n:"Matthieu LE DREZEN",o:"ACCEO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-150":{n:"Hubert MOREL-LAB",o:"ACG SYNERGIES",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-151":{n:"Julien NARDY",o:"ACG SYNERGIES",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-152":{n:"Cathy HERBERT",o:"AFPOLS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-153":{n:"Hugues CAMPAN",o:"AFPOLS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-154":{n:"Claire MARCORELLES",o:"AFPOLS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-155":{n:"Cécile CROQUIN",o:"AFPOLS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-156":{n:"Eric MATIFAS",o:"BIMER",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-157":{n:"Tristan RUIZ",o:"BIMER",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-158":{n:"Laurent MARCHAL",o:"BIMER",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-159":{n:"Gérald GALLEGO",o:"BOUYGUES BÂTIMENT SUD-EST",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-160":{n:"Nadir BESSAIH",o:"BOUYGUES BÂTIMENT SUD-EST",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-161":{n:"Vincent DELEAU",o:"CANUT",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-162":{n:"Christophe LOMBARD",o:"CANUT",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-163":{n:"Charlène JANNOT",o:"CANUT",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-164":{n:"Louise BRIET",o:"CELLANCE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-165":{n:"Claire SUBRA",o:"CELLANCE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-166":{n:"Christelle PARNEIX",o:"CELLANCE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-167":{n:"Sylvie BAUDET",o:"CFA LA FHABRIQUE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-168":{n:"Laurent GOYARD",o:"CFA LA FHABRIQUE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-169":{n:"Alexandre CARTON",o:"CIBOX",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-170":{n:"Paul HOWLEY",o:"EI ELECTRONICS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-171":{n:"Mickael BLEQUY",o:"EI ELECTRONICS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-172":{n:"Jérôme FOURNIER",o:"EI ELECTRONICS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-173":{n:"Jean-Marie LEROY",o:"QUADRA CONSULTANTS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-174":{n:"Céline NARCY",o:"QUADRA CONSULTANTS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-175":{n:"Anne DUMONT-LAUVERGNE",o:"QUADRA CONSULTANTS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-176":{n:"Ismail REZGIU",o:"KOCLIKO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-177":{n:"Anaël BLANC",o:"KOCLIKO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-178":{n:"William ALLEMAND",o:"NOVAMAP",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-179":{n:"Frédéric CLERMONT",o:"NOVAMAP",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-180":{n:"Kévin MARTINET",o:"NOVAMAP",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-181":{n:"Robin HAIRION",o:"NOVAMAP",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-182":{n:"Émilie ARCELLI",o:"GCC AURECA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-183":{n:"Mélanie HAMET",o:"GCC AQUITAINE",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-184":{n:"Antoine LE BLEVEC",o:"GCC CONSTRUCTION",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-185":{n:"Jean-François FABRI",o:"GCC RESID",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-186":{n:"Thomas TIRTIAUX",o:"ELAX ENERGIE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-187":{n:"Alexandre MARCOUX",o:"ELAX ENERGIE",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-188":{n:"Michael PHAM",o:"ENERLIS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-189":{n:"Aurélie GAUDILLÈRE",o:"ENERLIS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-190":{n:"Laura PINÇON",o:"ENERLIS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-191":{n:"Thierry MARTIN",o:"ENERLIS",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-192":{n:"Eduard MALDONADO",o:"IDEX",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-193":{n:"Jean-Christophe RAVIER",o:"IDEX",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-194":{n:"Stéphane DAUPHIN",o:"IDEX",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-195":{n:"Jérémie CHERUBINI",o:"IDEX",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-196":{n:"Daniel BURATTI",o:"LOSFOR",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-197":{n:"Stéphane GEYER",o:"LOSFOR",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-198":{n:"Céline SURIAN-JOUVE",o:"LOSFOR",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-199":{n:"Romain STOPA",o:"LOSFOR",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-200":{n:"Delphine TARIOT",o:"LOSFOR",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-201":{n:"Christian KOWALSKI",o:"MERCURI URVAL",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-202":{n:"Jean-Yves BRESSON",o:"MERCURI URVAL",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-203":{n:"Michel TOLILA",o:"MERCURI URVAL",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-204":{n:"Aline CASANOVA",o:"MERCURI URVAL",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-205":{n:"Christophe ARNOUX",o:"NOVADIAL",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-206":{n:"Stéphane CALZADO",o:"NOVADIAL",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-207":{n:"Georgia DE BATTISTI",o:"ORANGE CONSULTING",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-208":{n:"Bruno MARTIN",o:"ORANGE BANQUE DES TERRITOIRES",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-209":{n:"Christophe VAN DE WALLE",o:"ORANGE BUSINESS",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-210":{n:"Matthieu ROCHE TOUSSAINT",o:"PILOC",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-211":{n:"Julian PHILIP",o:"PILOC",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-212":{n:"Stéphane DESHAYES",o:"VEOLIA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-213":{n:"Alphonse TIRERA",o:"VEOLIA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-214":{n:"Nicolas HENRY",o:"VEOLIA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-215":{n:"Sébastien LANNUZEL",o:"VEOLIA",a:[1,1,1,0,1,1,1,0],t:"PARTENAIRE"},
+"OPH2026-216":{n:"Erwan KERVOA",o:"UNIKALO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-217":{n:"Élodie HERATCHIAN",o:"UNIKALO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"},
+"OPH2026-218":{n:"Julien DUFOSSEY",o:"UNIKALO",a:[1,1,1,0,0,1,1,0],t:"PARTENAIRE"}
 };
 
 const CHECKPOINTS = {
@@ -463,6 +605,7 @@ const CHECKPOINTS = {
     j1_apresmidi: {label:"J1 - Apres-midi Congres", idx:2},
     j1_velodrome: {label:"J1 - Visite Velodrome", idx:3, val:1},
     j1_petittrain: {label:"J1 - Circuit petit train", idx:3, val:2},
+    j1_frioul: {label:"J1 - Frioul", idx:3, val:3},
     j1_gala: {label:"J1 - Soiree de Gala", idx:4},
     j2_pleniere: {label:"J2 - Pleniere", idx:5},
     j2_cocktail: {label:"J2 - Cocktail Dejeunatoire", idx:6},
@@ -479,30 +622,57 @@ for (const [code, p] of Object.entries(DB)) {
 }
 
 function parseBadgeQR(text) {
-    if (!text.includes('Prénom:') || !text.includes('Nom:')) return null;
+    if (!text.includes('Prénom:') && !text.includes('Prenom:')) return null;
+    if (!text.includes('Nom:')) return null;
     const get = (field) => {
-        const m = text.match(new RegExp(field + '\\s*:\\s*(.+)'));
+        const m = text.match(new RegExp(field + '\\s*:\\s*(.+)', 'i'));
         return m ? m[1].trim() : '';
     };
-    const prenom = get('Prénom');
+    const toBool = (v) => v === '1' || v === 'Oui' || v === 'oui' || v === 'OUI' ? 1 : 0;
+
+    const prenom = get('Prénom') || get('Prenom');
     const nom = get('Nom');
     if (!prenom || !nom) return null;
 
-    const societe = get('Société');
-    const jour1 = get('Jour 1') === 'Oui' ? 1 : 0;
-    const actRaw = get('Activité');
+    const societe = get('Société') || get('Societe') || get('Société') || '';
+    const type = (get('Type') || 'PARTICIPANT').toUpperCase();
+
+    // Parse JOUR 1 — accept "1", "Oui", or any truthy value
+    const jour1 = toBool(get('JOUR 1') || get('Jour 1'));
+
+    // Parse Activité — text or numeric
+    const actRaw = get('Activité') || get('Activite') || get('ACTIVITÉ') || get('ACTIVITE') || '';
     let activite = 0;
-    if (actRaw.includes('Vélodrome') || actRaw.includes('Velodrome')) activite = 1;
-    else if (actRaw.includes('petit train')) activite = 2;
-    const gala = get('Soirée de gala') === 'Oui' ? 1 : 0;
-    const jour2 = get('Jour 2') === 'Oui' ? 1 : 0;
-    const goodies = get('Goodies') === 'Oui' ? 1 : 0;
-    const dietRaw = get('Préférences alimentaires');
-    const diet = (dietRaw && dietRaw !== 'Aucune') ? dietRaw : '';
+    if (actRaw === '1' || /[Vv][ée]lodrome/i.test(actRaw)) activite = 1;
+    else if (actRaw === '2' || /petit.?train/i.test(actRaw)) activite = 2;
+    else if (actRaw === '3' || /[Ff]rioul/i.test(actRaw)) activite = 3;
+    else if (actRaw && actRaw !== '0' && actRaw !== 'Aucune' && actRaw !== 'Non') activite = parseInt(actRaw) || 0;
+
+    // Parse Gala — case-insensitive
+    const gala = toBool(get('SOIRÉE DE GALA') || get('Soirée de gala') || get('SOIREE DE GALA') || get('Soiree de gala'));
+
+    // Parse JOUR 2
+    const jour2 = toBool(get('JOUR 2') || get('Jour 2'));
+
+    // Parse Goodies
+    const goodies = toBool(get('GOODIES') || get('Goodies'));
+
+    // Parse dietary info (participants only, but handle gracefully)
+    const dietRaw = get('Préférences alimentaires') || get('Végétarien') || get('Vegetarien') || get('Régime') || '';
+    let diet = '';
+    if (dietRaw === 'Oui' || dietRaw === '1') diet = 'Végétarien';
+    else if (dietRaw && dietRaw !== 'Aucune' && dietRaw !== 'Non' && dietRaw !== '0') diet = dietRaw;
+
+    // Allergies (if present)
+    const allergies = get('Allergies') || '';
+    if (allergies && allergies !== 'Aucune' && allergies !== 'Non') {
+        diet = diet ? diet + ' / ' + allergies : allergies;
+    }
 
     return {
         fullName: prenom + ' ' + nom,
         org: societe,
+        type: type,
         access: [jour1, jour1, jour1, activite, gala, jour2, jour2, goodies],
         diet: diet
     };
@@ -632,6 +802,10 @@ window.startApp = function() {
     if (savedBorne && savedOp) {
         document.getElementById('select-borne').value = savedBorne;
         document.getElementById('input-operator').value = savedOp;
+        // Auto-start if already configured
+        if (localStorage.getItem('oph_auth') === '1') {
+            startApp();
+        }
     }
 })();
 
@@ -656,7 +830,7 @@ window.toggleCamera = async function() {
         scanner = new Html5Qrcode('camera-box');
         await scanner.start(
             {facingMode:'environment'},
-            {fps:10, qrbox:{width:250,height:250}},
+            {fps:15, qrbox:{width:300,height:300}, aspectRatio:1.0},
             onQrScanned
         );
         cameraOn = true;
@@ -678,7 +852,7 @@ async function stopCamera() {
 function onQrScanned(code) {
     if (cooldown) return;
     cooldown = true;
-    setTimeout(() => cooldown = false, 2000);
+    setTimeout(() => cooldown = false, 1000);
     processScan(code.trim());
 }
 
@@ -706,10 +880,11 @@ function processScan(raw) {
         if (dbCode) {
             code = dbCode;
             person = DB[dbCode];
+            if (badge.type) person = Object.assign({}, person, {t: badge.type});
         } else {
             // Not in DB — build virtual entry from badge QR data
             code = 'BADGE-' + nameKey.replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-');
-            person = { n: badge.fullName, o: badge.org, a: badge.access, d: badge.diet };
+            person = { n: badge.fullName, o: badge.org, a: badge.access, d: badge.diet, t: badge.type };
         }
     } else {
         // 2) Old format: extract OPH2026-XXX
@@ -728,7 +903,20 @@ function processScan(raw) {
     const cp = CHECKPOINTS[currentBorne];
     const hasAccess = cp.val !== undefined ? person.a[cp.idx] === cp.val : person.a[cp.idx] === 1;
 
-    if (!hasAccess) { showResult('denied', code, person); addLog(code, person, 'denied'); return; }
+    if (!hasAccess) {
+        const actLabels = {0:'Aucune', 1:'Visite Velodrome', 2:'Circuit petit train', 3:'Frioul'};
+        let reason;
+        if (cp.val !== undefined) {
+            const personAct = person.a[cp.idx];
+            if (personAct === 0) reason = 'Pas inscrit(e) a une activite';
+            else reason = 'Inscrit(e) a : ' + (actLabels[personAct] || 'Activite ' + personAct) + ' (pas ' + cp.label + ')';
+        } else {
+            reason = 'Non autorise(e) pour : ' + cp.label;
+        }
+        showResult('denied', code, person, null, reason);
+        addLog(code, person, 'denied');
+        return;
+    }
 
     // Check already scanned (Firebase first, then local)
     const scanKey = code + '_' + currentBorne;
@@ -775,7 +963,7 @@ function addLog(code, person, status) {
 // ══════════════════════════════════════════════
 // RESULT OVERLAY
 // ══════════════════════════════════════════════
-function showResult(status, code, person, existingScan) {
+function showResult(status, code, person, existingScan, reason) {
     const el = document.getElementById('result-overlay');
     const icons = {ok:'&#10003;', denied:'&#10007;', already:'&#9888;', unknown:'?'};
     const titles = {ok:'ACCES AUTORISE', denied:'ACCES REFUSE', already:'DEJA SCANNE', unknown:'BADGE INCONNU'};
@@ -785,8 +973,12 @@ function showResult(status, code, person, existingScan) {
     if (person) {
         html += `<div class="result-name">${esc(person.n)}</div>`;
         if (person.o) html += `<div class="result-org">${esc(person.o)}</div>`;
+        if (person.t) html += `<div class="result-detail" style="font-weight:bold;text-transform:uppercase;margin-bottom:4px">${esc(person.t)}</div>`;
         html += `<div class="result-detail">${esc(code)}</div>`;
         if (person.d) html += `<div class="result-diet">Regime : ${esc(person.d)}</div>`;
+        if (status === 'denied' && reason) {
+            html += `<div class="result-already-info" style="background:rgba(255,255,255,0.15);padding:8px 12px;border-radius:8px;margin-top:8px">${esc(reason)}</div>`;
+        }
         if (status === 'already' && existingScan) {
             const t = new Date(existingScan.timestamp || existingScan.time);
             html += `<div class="result-already-info">
@@ -928,12 +1120,12 @@ window.showPersonDetail = function(code) {
     if (!p) return;
     const el = document.getElementById('search-detail');
     const labels = ['J1 Pleniere','J1 Cocktail','J1 Apres-midi','J1 Activite','J1 Gala','J2 Pleniere','J2 Cocktail','Goodie Bag'];
-    const actLabels = {0:'Aucune', 1:'Visite Velodrome', 2:'Circuit petit train'};
+    const actLabels = {0:'Aucune', 1:'Visite Velodrome', 2:'Circuit petit train', 3:'Frioul'};
 
     let accessHtml = p.a.map((v, i) => {
         let label = labels[i];
         let active = v > 0;
-        if (i === 3) { label = actLabels[v] || 'Aucune'; active = v > 0; }
+        if (i === 3) { label = 'Activite : ' + (actLabels[v] || 'Aucune'); active = v > 0; }
         return `<li><span class="dot ${active?'yes':'no'}"></span>${label}</li>`;
     }).join('');
 
@@ -952,11 +1144,13 @@ window.showPersonDetail = function(code) {
         <h2>${esc(code)}</h2>
         <div style="font-size:1.2em;font-weight:700;margin-bottom:4px">${esc(p.n)}</div>
         <div style="color:var(--text-dim);margin-bottom:12px">${esc(p.o)}</div>
+        ${p.t ? '<div style="background:#E3F2FD;padding:6px 12px;border-radius:8px;color:#1565C0;font-size:.85em;margin-bottom:12px;font-weight:600;text-transform:uppercase">'+esc(p.t)+'</div>' : ''}
         ${p.d ? '<div style="background:#FFF3E0;padding:6px 12px;border-radius:8px;color:#E65100;font-size:.85em;margin-bottom:12px">Regime : '+esc(p.d)+'</div>' : ''}
         <h2 style="margin-top:12px">Acces</h2>
         <ul class="access-list">${accessHtml}</ul>
         ${scanStatusHtml ? '<h2 style="margin-top:16px">Scans effectues</h2><ul class="access-list">'+scanStatusHtml+'</ul>' : ''}
     </div>`;
+    el.scrollIntoView({behavior:'smooth', block:'start'});
 };
 
 // ══════════════════════════════════════════════
@@ -974,6 +1168,22 @@ window.exportCSV = function() {
     a.href = URL.createObjectURL(blob);
     a.download = `scans_${currentBorne}_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
+};
+
+// ══════════════════════════════════════════════
+// RESET SCANS
+// ══════════════════════════════════════════════
+window.resetAllScans = function() {
+    if (!confirm('Voulez-vous vraiment effacer tout l\'historique des scans ? Cette action est irreversible.')) return;
+    // Clear local logs for all checkpoints
+    Object.keys(CHECKPOINTS).forEach(k => localStorage.removeItem('oph_log_' + k));
+    scanLog = [];
+    allScans = {};
+    // Clear Firebase scans if connected
+    if (db) { db.ref('scans').remove().catch(e => console.error(e)); }
+    renderRecentScans();
+    updateStats();
+    alert('Historique efface !');
 };
 
 // ══════════════════════════════════════════════
